@@ -1,0 +1,19 @@
+# Auto-loaded when the target cluster platform is BareMetal (libvirt-simulated BM hub).
+# Skip AWS-only components. Hub already has a default StorageClass (hostpath-csi).
+
+letsencrypt:
+  region: ""
+
+clusterGroup:
+  applications:
+    cert-manager:
+      disabled: true
+    autoscaler:
+      disabled: true
+    kubelet-config:
+      disabled: true
+    local-storage:
+      disabled: true
+
+localStorage:
+  enabled: false

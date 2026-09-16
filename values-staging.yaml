@@ -7,17 +7,16 @@ clusterGroup:
   namespaces:
     - vault
     - golang-external-secrets
-    - multicluster-engine
+    - openshift-pipelines
 
   subscriptions:
-    mce:
-      name: multicluster-engine
-      namespace: multicluster-engine
-      channel: stable-2.10
-    
+    openshift-pipelines:
+      name: openshift-pipelines-operator-rh
+      channel: latest
+
   projects:
     - hub
-    - hypershift
+    - pipelines
 
   applications:
     vault:
@@ -34,8 +33,9 @@ clusterGroup:
       chart: golang-external-secrets
       chartVersion: 0.1.*
 
+    # MCE / HyperShift already exist on the BM hub; do not install them again.
     hypershift:
-      disabled: false
+      disabled: true
       name: hypershift
       namespace: multicluster-engine
       project: hypershift
@@ -56,13 +56,3 @@ clusterGroup:
       # per playbook timeout in seconds
       timeout: 234
       # verbosity: "-v"
-
-  managedClusterGroups:
-    exampleRegion:
-      name: group-one
-      acmlabels:
-      - name: clusterGroup
-        value: group-one
-      helmOverrides:
-      - name: clusterGroup.isHubCluster
-        value: false

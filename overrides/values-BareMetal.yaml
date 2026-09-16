@@ -1,0 +1,8 @@
+# Compact BareMetal hub already provides hostpath-csi. Do not create extra local PVs.
+localStorage:
+  enabled: false
+
+clusterGroup:
+  applications:
+    local-storage:
+      disabled: true

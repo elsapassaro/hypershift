@@ -95,6 +95,7 @@ podman run -it --rm --pull=newer \
     -e K8S_AUTH_USERNAME \
     -e K8S_AUTH_VERIFY_SSL \
     -e KUBECONFIG \
+    -e INSTALL_KUBECONFIG \
     -e PATTERN_DIR \
     -e PATTERN_DISCONNECTED_HOME \
     -e PATTERN_INSTALL_CHART \

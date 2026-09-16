@@ -1,0 +1,6 @@
+apiVersion: v2
+name: local-storage
+description: Static local PVs for HyperShift hosted clusters (platform None) that have no CSI provisioner
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

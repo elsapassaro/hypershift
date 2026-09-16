@@ -4,6 +4,15 @@ metadata:
   name: cluster
 spec:
   identityProviders:
+{{- $oauthType := .Values.global.oauth.type | default "GitHub" }}
+{{- if eq $oauthType "HTPasswd" }}
+  - name: htpasswd
+    mappingMethod: claim
+    type: HTPasswd
+    htpasswd:
+      fileData:
+        name: {{ .Values.global.oauth.secretName }}
+{{- else }}
   - github:
       clientID: {{ .Values.global.oauth.github.clientID }}
       clientSecret:
@@ -32,6 +41,6 @@ spec:
     mappingMethod: claim
     name: github
     type: GitHub
+{{- end }}
   tokenConfig:
     accessTokenMaxAgeSeconds: 62208000
-

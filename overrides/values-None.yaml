@@ -1,0 +1,12 @@
+# HyperShift hosted cluster (infrastructure.status.platform: None)
+# Worker node names for static local PVs used by Vault and Tekton workspaces.
+localStorage:
+  enabled: true
+  nodes:
+    - hcptest-worker-0-0
+    - hcptest-worker-0-1
+
+clusterGroup:
+  applications:
+    local-storage:
+      disabled: false

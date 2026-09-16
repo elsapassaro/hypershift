@@ -1,0 +1,152 @@
+{{- $cfg := .Values.localStorage | default dict }}
+{{- $enabled := true }}
+{{- $enabledFlag := index $cfg "enabled" }}
+{{- if kindIs "bool" $enabledFlag }}
+{{- $enabled = $enabledFlag }}
+{{- end }}
+{{- $nodes := $cfg.nodes | default list }}
+{{- if and $enabled (gt (len $nodes) 0) }}
+{{- $ns := .Release.Namespace }}
+{{- $sc := $cfg.storageClassName | default "lab-hostpath" }}
+{{- $prefix := $cfg.pathPrefix | default "/var/lab-pvs" }}
+{{- $size := $cfg.volumeSize | default "10Gi" }}
+{{- $count := $cfg.volumesPerNode | default 6 | int }}
+{{- $sa := "lab-pv-prep" }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $sa }}
+  namespace: {{ $ns }}
+---
+apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+  name: lab-pv-prep
+allowPrivilegedContainer: true
+allowHostDirVolumePlugin: true
+allowHostIPC: false
+allowHostNetwork: false
+allowHostPID: false
+allowHostPorts: false
+allowPrivilegeEscalation: true
+allowedCapabilities: null
+defaultAddCapabilities: null
+requiredDropCapabilities: null
+readOnlyRootFilesystem: false
+runAsUser:
+  type: RunAsAny
+seLinuxContext:
+  type: RunAsAny
+fsGroup:
+  type: RunAsAny
+supplementalGroups:
+  type: RunAsAny
+volumes:
+  - configMap
+  - downwardAPI
+  - emptyDir
+  - hostPath
+  - projected
+  - secret
+users:
+  - system:serviceaccount:{{ $ns }}:{{ $sa }}
+groups: []
+priority: 10
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: lab-pv-prep
+  namespace: {{ $ns }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  selector:
+    matchLabels:
+      app: lab-pv-prep
+  template:
+    metadata:
+      labels:
+        app: lab-pv-prep
+    spec:
+      serviceAccountName: {{ $sa }}
+      hostNetwork: false
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: prep
+          image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              i=0
+              while [ "$i" -lt "{{ $count }}" ]; do
+                mkdir -p "{{ $prefix }}/pv-$i"
+                chmod 0777 "{{ $prefix }}/pv-$i"
+                i=$((i + 1))
+              done
+              sleep infinity
+          volumeMounts:
+            - name: lab-pvs
+              mountPath: {{ $prefix | quote }}
+          readinessProbe:
+            exec:
+              command:
+                - test
+                - -d
+                - {{ printf "%s/pv-0" $prefix | quote }}
+            initialDelaySeconds: 2
+            periodSeconds: 10
+      volumes:
+        - name: lab-pvs
+          hostPath:
+            path: {{ $prefix | quote }}
+            type: DirectoryOrCreate
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ $sc }}
+  {{- if $cfg.setDefault }}
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+  {{- end }}
+provisioner: kubernetes.io/no-provisioner
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+{{- range $node := $nodes }}
+{{- range $i := until $count }}
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ printf "lab-pv-%s-%d" $node $i }}
+  labels:
+    storage.validatedpatterns.io/node: {{ $node | quote }}
+spec:
+  capacity:
+    storage: {{ $size }}
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: {{ $sc }}
+  volumeMode: Filesystem
+  local:
+    path: {{ printf "%s/pv-%d" $prefix $i }}
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - {{ $node | quote }}
+{{- end }}
+{{- end }}
+{{- end }}

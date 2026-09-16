@@ -1,0 +1,11 @@
+# Static host-local PVs for lab / HyperShift worker nodes without a CSI driver.
+# Directories are created by a privileged DaemonSet; PVs bind with WaitForFirstConsumer.
+localStorage:
+  enabled: true
+  storageClassName: lab-hostpath
+  setDefault: true
+  pathPrefix: /var/lab-pvs
+  volumeSize: 10Gi
+  volumesPerNode: 6
+  # Worker node names (kubernetes.io/hostname). Set per platform overlay.
+  nodes: []

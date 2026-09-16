@@ -11,3 +11,7 @@ pipelinesRbac:
   # OpenShift Users and Groups (e.g. GitHub Group Sync → group name "my-org-my-team")
   users: []
   groups: []
+  # Optional HTPasswd / local lab group created by this chart
+  localGroup:
+    name: ""
+    users: []

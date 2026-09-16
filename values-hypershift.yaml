@@ -1,109 +1,53 @@
-# Override values for HyperShift
-# Define the s3 bucket information
-global:
-  hypershift:
-    createBucket: true
-    oidc:
-# OIDC bucket information: provide region and bucketName
-      region: "us-east-2"
-      bucketName: "vphcp-state"
+# Shared values for the libvirt/BM Tekton-only pattern.
+# MCE, hosted-cluster provisioning, S3 OIDC, and AWS autoscaling are intentionally omitted.
 
-# GitHub organization(s) — shared by oauth and group-sync
+global:
+  # GitHub organization(s) — used only if oauth.type is GitHub and groupsync is enabled.
   github:
     orgs:
     - name: validatedpatterns
-      # Teams: Group Sync uses them for OpenShift groups. OAuth uses org/team slugs
-      # for login when this list is non-empty; otherwise OAuth allows the whole org.
       teams:
       - Engineering
       - qe
       - Docs
 
-# register a GitHub oAuth application: https://github.com/settings/applications/new
-# configure oauth provider: https://docs.openshift.com/container-platform/4.15/authentication/understanding-identity-provider.html
-#
-# The default configuration uses github as the provider
   oauth:
-    type: GitHub
-    secretName: ocp-github-oauth
+    # HTPasswd uses the lab users in /home/kni/clusterconfigs/users.htpasswd (loaded via Vault).
+    # Switch to GitHub by setting type: GitHub, secretName: ocp-github-oauth, and providing oauthCreds.
+    type: HTPasswd
+    secretName: htpasswd-secret
     github:
       clientID: 'Ov23liX8pobrzJV3I5S0'
 
-# Group Sync Operator — syncs GitHub teams to OpenShift groups.
-# Vault secret githubGroupSync: `appId` = GitHub App ID (settings/apps → About), not installation ID;
-# `privateKey` = app PEM. The operator resolves org installation from `global.github.orgs[].name`.
   groupsync:
     secretName: github-group-sync
     github:
       credentialsSecretName: github-group-sync
       url: https://api.github.com/
 
-# KubeletConfig (charts/all/kubelet-config). Compact 3-node hub: all nodes are on the master
-# MachineConfigPool; the worker pool is empty, so targetPool must be master.
+# Local PVs for hosted clusters without CSI. Node list comes from values-None.yaml / overrides.
+localStorage:
+  enabled: true
+  storageClassName: lab-hostpath
+  setDefault: true
+  pathPrefix: /var/lab-pvs
+  volumeSize: 10Gi
+  volumesPerNode: 6
+  nodes: []
+
+# KubeletConfig is disabled on this branch (no MCP on hosted clusters).
 kubelet:
   targetPool: worker
-
-# Cluster Autoscaling Configuration
-# Enable autoscaling to automatically adjust cluster size based on workload demands
-autoscaling:
-  clusterAutoscaler:
-    # Set to true to enable cluster autoscaling
-    enabled: true
-    # Balance nodes across similar MachineSets (e.g., across availability zones)
-    balanceSimilarNodeGroups: true
-    # Allow scale-down of nodes running pods with emptyDir volumes
-    skipNodesWithLocalStorage: false
-    resourceLimits:
-      # Maximum total nodes allowed in the cluster
-      maxNodesTotal: 24
-      cores:
-        min: 8
-        max: 128
-      memory:
-        min: 32
-        max: 512
-    scaleDown:
-      enabled: true
-      # Time to wait after scale up before considering scale down
-      delayAfterAdd: "10m"
-      # Node utilization threshold (0.0-1.0) below which nodes are candidates for removal
-      utilizationThreshold: "0.6"
-
-  # Define MachineAutoscalers for each MachineSet to autoscale
-  # Uncomment and configure based on your cluster's MachineSets
-  machineAutoscalers:
-    - name: worker-autoscaler-2a
-      enabled: true
-      machineSetName: hcp-mktvr-worker-us-west-2a
-      minReplicas: 0
-      maxReplicas: 6
-    - name: worker-autoscaler-2c
-      enabled: true
-      machineSetName: hcp-mktvr-worker-us-west-2c
-      minReplicas: 0
-      maxReplicas: 6
-    - name: worker-autoscaler-2d
-      enabled: true
-      machineSetName: hcp-mktvr-worker-us-west-2d
-      minReplicas: 0
-      maxReplicas: 6
-
 
 # Set rbac.create to false if you want to skip creation of role/rolebinding.
 rbac:
   create: true
-# Provide a list of users and/or groups to add to the clusterrolebinding
   users: []
   groups:
-  - Engineering
-  - qe
-  - Docs
-  sudoerGroups:
-  - Engineering
+  - ci-users
+  sudoerGroups: []
 
-# Tekton / OpenShift Pipelines (charts/all/pipelines-rbac): ClusterRole plus optional
-# ClusterRoleBinding for OpenShift Users and Groups (for example names produced by
-# GitHub Group Sync). Grants full lifecycle on Pipelines CRDs in every namespace.
+# Tekton / OpenShift Pipelines (charts/all/pipelines-rbac)
 pipelinesRbac:
   create: true
   clusterRoleName: openshift-pipelines-tekton-admin
@@ -111,12 +55,17 @@ pipelinesRbac:
   includePodLogAccess: true
   users: []
   groups:
-    - Engineering
-    - qe
+    - ci-users
+  localGroup:
+    name: ci-users
+    users:
+      - demouser1
+      - demouser2
+      - demouser3
+      - demouser4
+      - demouser5
 
-# Argo CD / OpenShift GitOps Application CRs (charts/all/argocd-application-rbac).
-# Grants Kubernetes API access to applications, applicationsets, and appprojects.
-# For the Argo CD web UI, also configure policy.csv in argocd-rbac-cm for the same groups.
+# Argo CD / OpenShift GitOps Application CRs (charts/all/argocd-application-rbac)
 argocdApplicationRbac:
   create: true
   clusterRoleName: openshift-gitops-application-manager
@@ -124,13 +73,4 @@ argocdApplicationRbac:
   includeArgoCdOperatorCr: false
   users: []
   groups:
-    - Engineering
-
-letsencrypt:
-# region can be the empty string unless AccessKeyID and SecretAccessKeyID are not set (which we ensure is never true)
-# Otherwise, set to the region of the cluster, eg. us-east-1
-   region: us-east-2
-   server: https://acme-v02.api.letsencrypt.org/directory
-  # staging URL
-  # server: https://acme-staging-v02.api.letsencrypt.org/directory
-   email: team-vp@ragtagrobot.com
+    - ci-users

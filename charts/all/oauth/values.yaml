@@ -22,6 +22,7 @@ global:
     enabled: #True to enable the customization of oauth, false to use cluster deployed
     secretName: #Name of the secret to be generated with appropriate credentials
     type: #GitHub, HTPasswd
+    htpasswdKeyPath: # Vault path for HTPasswd file contents (default secret/data/hub/htpasswd)
 # if GitHub provide the following values
     github:
       clientID: #retrieve from github oauth application

@@ -1,0 +1,14 @@
+{{- $cfg := .Values.pipelinesRbac | default dict }}
+{{- $local := $cfg.localGroup | default dict }}
+{{- $name := index $local "name" | default "" }}
+{{- $users := $local.users | default list }}
+{{- if and $name (gt (len $users) 0) }}
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  name: {{ $name | quote }}
+users:
+{{- range $users }}
+  - {{ . | quote }}
+{{- end }}
+{{- end }}

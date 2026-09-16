@@ -1,3 +1,4 @@
+{{- if .Values.hypershiftIAM.enabled | default false }}
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
@@ -16,3 +17,4 @@ spec:
   dataFrom:
   - extract:
       key: {{ .Values.hypershiftIAM.key }}
+{{- end }}

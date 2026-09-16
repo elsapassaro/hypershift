@@ -1,0 +1,22 @@
+# Auto-loaded when the target cluster platform is None (HyperShift hosted cluster).
+# Lets Encrypt / AWS Route53 and AWS MachineSet autoscaling do not apply.
+
+letsencrypt:
+  region: ""
+
+clusterGroup:
+  applications:
+    cert-manager:
+      disabled: true
+    autoscaler:
+      disabled: true
+    kubelet-config:
+      disabled: true
+    local-storage:
+      disabled: false
+
+localStorage:
+  enabled: true
+  nodes:
+    - hcptest-worker-0-0
+    - hcptest-worker-0-1

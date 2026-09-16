@@ -3,12 +3,15 @@ secretStore:
   kind: ClusterSecretStore
 
 awsCreds:
+  enabled: false
   key: secret/data/hub/aws
 
 pullSecret:
+  enabled: false
   key: pushsecrets/global-pull-secret
 
 hypershiftIAM:
+  enabled: false
   key: secret/data/hub/hypershift-iam
 
 global:

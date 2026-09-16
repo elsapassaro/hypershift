@@ -2,7 +2,13 @@
 # This Makefile includes the common pattern targets from Makefile-common
 # You can add custom targets above or below the include line
 
-##@ S3 tasks
+# This branch installs onto the existing hosted cluster. A shell that exported
+# the hub kubeconfig must not silently retarget the install.
+# Override: INSTALL_KUBECONFIG=/home/kni/clusterconfigs/auth/kubeconfig ./patterns.sh make install
+INSTALL_KUBECONFIG ?= /home/kni/clusterconfigs/hcptest-0/auth/kubeconfig
+export KUBECONFIG := $(INSTALL_KUBECONFIG)
+
+##@ S3 tasks (AWS pattern only; not used by make install on this branch)
 
 .PHONY: create-s3-bucket
 create-s3-bucket: ## Create a public S3 bucket (BUCKET_NAME=name REGION=region)
@@ -18,7 +24,19 @@ endif
 verify-s3-bucket: ## Verify OIDC S3 bucket is defined and exists
 	@./scripts/verify-s3-bucket.sh values-hypershift.yaml
 
+.PHONY: check-kubeconfig
+check-kubeconfig: ## Verify KUBECONFIG exists and the API is reachable
+	@test -f "$(KUBECONFIG)" || (echo "KUBECONFIG not found: $(KUBECONFIG)"; exit 1)
+	@echo "Installing onto $$(oc --kubeconfig=$(KUBECONFIG) whoami --show-server) as $$(oc --kubeconfig=$(KUBECONFIG) whoami)"
+
+.PHONY: ensure-values-secret
+ensure-values-secret: ## Create ~/values-secret-hypershift.yaml from the template when missing
+	@if [ ! -f "$(HOME)/values-secret-hypershift.yaml" ] && [ ! -f "$(CURDIR)/values-secret.yaml" ]; then \
+	  cp values-secret.yaml.template "$(HOME)/values-secret-hypershift.yaml"; \
+	  echo "Created $(HOME)/values-secret-hypershift.yaml from template"; \
+	fi
+
 .PHONY: install
-install: verify-s3-bucket pattern-install ## Installs the pattern (verifies S3 bucket first)
+install: check-kubeconfig ensure-values-secret pattern-install ## Install Tekton + secrets stack (skips MCE, HyperShift, S3)
 
 include Makefile-common

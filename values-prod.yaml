@@ -8,8 +8,6 @@ clusterGroup:
 
   namespaces:
     vault:
-    multicluster-engine:
-    group-sync-operator:
     golang-external-secrets:
       disabled: true
     external-secrets-operator:
@@ -17,10 +15,16 @@ clusterGroup:
       targetNamespaces: []
     external-secrets:
     openshift-pipelines:
-    cluster-provisioning:
     vp-qe-ci:
-    # When listed (and not disabled), charts/all/pipelines enables create-klusterlet-addon alongside acm app below.
-    # open-cluster-management:
+    local-storage:
+    # MCE / HyperShift / Hive provisioning are already present on the BM hub.
+    # Do not recreate them on the hosted cluster.
+    multicluster-engine:
+      disabled: true
+    cluster-provisioning:
+      disabled: true
+    group-sync-operator:
+      disabled: true
 
   # Operator subscriptions default to sync wave 0. Give them an explicit early band so
   # CSVs exist before Applications that install CRs for those operators (Argo advances
@@ -33,7 +37,9 @@ clusterGroup:
       annotations:
         argocd.argoproj.io/sync-wave: "5"
 
+    # Already installed on the BM hub; do not subscribe again.
     mce:
+      disabled: true
       name: multicluster-engine
       namespace: multicluster-engine
       channel: stable-2.17
@@ -45,6 +51,7 @@ clusterGroup:
       channel: latest
 
     groupsync:
+      disabled: true
       name: group-sync-operator
       namespace: group-sync-operator
       source: community-operators
@@ -54,15 +61,12 @@ clusterGroup:
 
   argoProjects:
     - hub
-    - hypershift
     - pipelines
     - infrastructure
 
   # Hub Applications: assign argocd.argoproj.io/sync-wave on every Argo Application so
-  # ordering is explicit and kubelet-config stays in a terminal wave. Argo advances waves
-  # only after resources in the current wave are Synced and Healthy; leaving many apps at
-  # the default wave 0 makes failures harder to reason about and can interact badly with
-  # MCO (KubeletConfig) rollouts during first sync.
+  # ordering is explicit. Argo advances waves only after resources in the current wave
+  # are Synced and Healthy.
   applications:
     vault:
       name: vault
@@ -84,9 +88,10 @@ clusterGroup:
       chartVersion: 0.0.*
       annotations:
         argocd.argoproj.io/sync-wave: "38"
-    
+
+    # AWS Route53 DNS-01. Not used on libvirt/BM.
     cert-manager:
-      disabled: false
+      disabled: true
       name: openshift-cert-manager
       namespace: cert-manager-operator
       argoProject: hub
@@ -99,9 +104,10 @@ clusterGroup:
           kind: ArgoCD
           jqPathExpressions:
             - .metadata.annotations
-    
+
+    # AWS MachineSet autoscaler. Hosted cluster workers are NodePools on the hub.
     autoscaler:
-      disabled: false
+      disabled: true
       name: cluster-autoscaler
       namespace: openshift-machine-api
       argoProject: hub
@@ -110,18 +116,20 @@ clusterGroup:
       annotations:
         argocd.argoproj.io/sync-wave: "15"
 
+    # HyperShift / MCE configuration lives on the existing BM hub.
     hypershift:
-      disabled: false
+      disabled: true
       name: hypershift
       namespace: multicluster-engine
-      argoProject: hypershift
+      argoProject: hub
       chart: hypershift-config
       chartVersion: 0.0.*
       annotations:
         argocd.argoproj.io/sync-wave: "18"
 
+    # AWS Hive/HyperShift cluster-provisioning pipelines. Not used here.
     pipelines:
-      disabled: false
+      disabled: true
       name: pipelines
       namespace: openshift-pipelines
       argoProject: pipelines
@@ -149,15 +157,9 @@ clusterGroup:
       annotations:
         argocd.argoproj.io/sync-wave: "17"
 
-    # Uncomment when ACM is installed — pipelines chart detects this key and enables Klusterlet add-on task.
-    # acm:
-    #   name: acm
-    #   namespace: open-cluster-management
-    #   argoProject: hub
-    #   chart: acm
-    #   chartVersion: 0.2.*
-
+    # AWS IAM / hive credentials. Pull secret is already on the cluster.
     credentials:
+      disabled: true
       name: pattern-credentials
       namespace: cluster-provisioning
       argoProject: infrastructure
@@ -175,7 +177,7 @@ clusterGroup:
         argocd.argoproj.io/sync-wave: "50"
 
     groupsync:
-      disabled: false
+      disabled: true
       name: groupsync
       namespace: group-sync-operator
       argoProject: hub
@@ -184,20 +186,18 @@ clusterGroup:
         argocd.argoproj.io/sync-wave: "60"
 
     hypershift-cli:
-      disabled: false
+      disabled: true
       name: hcp-cli
       namespace: cluster-provisioning
       argoProject: infrastructure
       path: charts/all/hcp-cli
 
     kubelet-config:
-      disabled: false
+      disabled: true
       name: kubelet-config
       namespace: openshift-machine-config-operator
       argoProject: hub
       path: charts/all/kubelet-config
-      # Terminal wave: KubeletConfig triggers MCO node reconcile and must not run until
-      # hub workloads above (Vault, ESO, routes, etc.) are healthy.
       annotations:
         argocd.argoproj.io/sync-wave: "999"
       ignoreDifferences:
@@ -205,6 +205,16 @@ clusterGroup:
           kind: KubeletConfig
           jqPathExpressions:
             - .metadata.annotations
+
+    # Static local PVs for hosted clusters with no CSI (platform None). Disabled on BareMetal.
+    local-storage:
+      disabled: true
+      name: local-storage
+      namespace: local-storage
+      argoProject: infrastructure
+      path: charts/all/local-storage
+      annotations:
+        argocd.argoproj.io/sync-wave: "10"
 
   imperative:
     # NOTE: We *must* use lists and not hashes. As hashes lose ordering once parsed by helm
@@ -222,12 +232,5 @@ clusterGroup:
       timeout: 234
       # verbosity: "-v"
 
-  managedClusterGroups:
-    exampleRegion:
-      name: group-one
-      acmlabels:
-      - name: clusterGroup
-        value: group-one
-      helmOverrides:
-      - name: clusterGroup.isHubCluster
-        value: false
+  # ACM-managed spoke groups are omitted: MCE/ACM already exist on the BM hub
+  # and this install targets Tekton on the hosted cluster only.
