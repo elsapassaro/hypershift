@@ -28,7 +28,7 @@ Storage uses the hub’s existing `hostpath-csi` default StorageClass.
 ## Prerequisites
 
 - Hub kubeconfig (default target): `/home/kni/clusterconfigs/auth/kubeconfig`
-- HTPasswd file: `/home/kni/clusterconfigs/users.htpasswd`
+- HTPasswd file: `/home/kni/users.htpasswd`
 - Pull secret (optional, loaded into Vault): `/home/kni/clusterconfigs/pull-secret.json`
 - `podman` (used by `pattern.sh` / `patterns.sh`)
 - This git branch must be **pushed** to the origin Argo CD will clone (`TARGET_BRANCH` defaults to the current branch)
@@ -60,8 +60,8 @@ Guest OAuth CRs cannot be patched on a hosted cluster; `values-None.yaml` disabl
 
 ## After install
 
-- Console login: HTPasswd users `demouser1` … `demouser5` (see `users.spec` for passwords)
-- Group `ci-users` is bound to `openshift-pipelines-tekton-admin`
+- Console login: HTPasswd users
+- Group `ci-users` includes those lab users and is bound to `openshift-pipelines-tekton-admin` and GitOps application RBAC
 - Create Pipeline / PipelineRun objects in `vp-qe-ci` or any namespace
 - Workspace PVCs use the hub default StorageClass (`hostpath-csi`)
 

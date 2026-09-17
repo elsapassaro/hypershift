@@ -13,7 +13,7 @@ global:
       - Docs
 
   oauth:
-    # HTPasswd uses the lab users in /home/kni/clusterconfigs/users.htpasswd (loaded via Vault).
+    # HTPasswd uses the lab users in /home/kni/users.htpasswd (loaded via Vault).
     # This applies on the hub (BareMetal). Guest OAuth CRs on hosted clusters are immutable.
     # Switch to GitHub by setting type: GitHub, secretName: ocp-github-oauth, and providing oauthCreds.
     type: HTPasswd
@@ -61,11 +61,9 @@ pipelinesRbac:
   localGroup:
     name: ci-users
     users:
-      - demouser1
-      - demouser2
-      - demouser3
-      - demouser4
-      - demouser5
+      - epassaro
+      - ugreener
+      - ikandel
 
 # Argo CD / OpenShift GitOps Application CRs (charts/all/argocd-application-rbac)
 argocdApplicationRbac:
