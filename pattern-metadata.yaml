@@ -2,7 +2,7 @@
 # documentation and qe
 metadata_version: "1.0"
 name: hypershift
-description: Tekton CI environment on an existing HyperShift hosted cluster (libvirt/BM). Skips MCE and hosted-cluster provisioning.
+description: Tekton CI on an existing BareMetal HyperShift hub (libvirt/BM). Skips MCE and hosted-cluster provisioning.
 pattern_version: "1.0"
 display_name: HyperShift Tekton (libvirt)
 repo_url: https://github.com/validatedpatterns-sandbox/hypershift
@@ -14,17 +14,13 @@ ci_url: https://validatedpatterns.io/ci/?pattern=hypershift
 tier: tested
 owners: day0hero
 requirements:
-  hub: # Target cluster for GitOps + Tekton (existing hosted cluster)
+  hub: # Hosting cluster: GitOps + Tekton (MCE/HyperShift already installed)
     compute:
       platform:
-        none:
-          replicas: 2
         baremetal:
           replicas: 3
     controlPlane:
       platform:
-        none:
-          replicas: 0
         baremetal:
           replicas: 3
 
@@ -32,8 +28,8 @@ requirements:
 # kubernetes support, spoke support
 extra_features:
   hypershift_support: true
-  spoke_support: true
+  spoke_support: false
 
-# No AWS S3 OIDC bucket; hosted cluster already exists on BM/libvirt.
+# No AWS S3 OIDC bucket; hosted cluster already exists and is not provisioned by this branch.
 external_requirements:
   s3_bucket: false

@@ -2,10 +2,11 @@
 # This Makefile includes the common pattern targets from Makefile-common
 # You can add custom targets above or below the include line
 
-# This branch installs onto the existing hosted cluster. A shell that exported
-# the hub kubeconfig must not silently retarget the install.
-# Override: INSTALL_KUBECONFIG=/home/kni/clusterconfigs/auth/kubeconfig ./patterns.sh make install
-INSTALL_KUBECONFIG ?= /home/kni/clusterconfigs/hcptest-0/auth/kubeconfig
+# This branch installs onto the existing BM hub (hosting cluster), matching the
+# upstream pattern: Tekton runs on the management cluster. MCE and hosted-cluster
+# provisioning are skipped because they are already present.
+# Override: INSTALL_KUBECONFIG=/home/kni/clusterconfigs/hcptest-0/auth/kubeconfig ./patterns.sh make install
+INSTALL_KUBECONFIG ?= /home/kni/clusterconfigs/auth/kubeconfig
 export KUBECONFIG := $(INSTALL_KUBECONFIG)
 
 ##@ S3 tasks (AWS pattern only; not used by make install on this branch)

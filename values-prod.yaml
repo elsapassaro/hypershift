@@ -17,8 +17,8 @@ clusterGroup:
     openshift-pipelines:
     vp-qe-ci:
     local-storage:
-    # MCE / HyperShift / Hive provisioning are already present on the BM hub.
-    # Do not recreate them on the hosted cluster.
+    # MCE / HyperShift are already present on this hub. Do not subscribe or
+    # reconfigure them, and do not provision another hosted cluster.
     multicluster-engine:
       disabled: true
     cluster-provisioning:
@@ -116,7 +116,7 @@ clusterGroup:
       annotations:
         argocd.argoproj.io/sync-wave: "15"
 
-    # HyperShift / MCE configuration lives on the existing BM hub.
+    # Skip HyperShift operator/config; the hub already hosts hcptest-0.
     hypershift:
       disabled: true
       name: hypershift
@@ -127,7 +127,7 @@ clusterGroup:
       annotations:
         argocd.argoproj.io/sync-wave: "18"
 
-    # AWS Hive/HyperShift cluster-provisioning pipelines. Not used here.
+    # AWS Hive/HyperShift cluster-provisioning pipelines (would create hosted clusters).
     pipelines:
       disabled: true
       name: pipelines
@@ -206,7 +206,7 @@ clusterGroup:
           jqPathExpressions:
             - .metadata.annotations
 
-    # Static local PVs for hosted clusters with no CSI (platform None). Disabled on BareMetal.
+    # Static local PVs only if installing on a hosted cluster (platform None). Hub has hostpath-csi.
     local-storage:
       disabled: true
       name: local-storage
@@ -232,5 +232,5 @@ clusterGroup:
       timeout: 234
       # verbosity: "-v"
 
-  # ACM-managed spoke groups are omitted: MCE/ACM already exist on the BM hub
-  # and this install targets Tekton on the hosted cluster only.
+  # ACM-managed spoke groups are omitted: this install only adds Tekton/secrets
+  # on the existing hub and does not manage hosted clusters via ACM.

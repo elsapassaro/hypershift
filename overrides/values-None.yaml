@@ -10,3 +10,5 @@ clusterGroup:
   applications:
     local-storage:
       disabled: false
+    oauth:
+      disabled: true

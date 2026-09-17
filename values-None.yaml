@@ -1,5 +1,5 @@
-# Auto-loaded when the target cluster platform is None (HyperShift hosted cluster).
-# Lets Encrypt / AWS Route53 and AWS MachineSet autoscaling do not apply.
+# Auto-loaded only if kubeconfig points at a hosted cluster (platform None).
+# Default install targets the BareMetal hub; keep these guards if retargeted.
 
 letsencrypt:
   region: ""
@@ -14,6 +14,8 @@ clusterGroup:
       disabled: true
     local-storage:
       disabled: false
+    oauth:
+      disabled: true
 
 localStorage:
   enabled: true

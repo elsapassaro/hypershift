@@ -1,16 +1,16 @@
 # Hosted Control Planes (HyperShift) — libvirt/BM Tekton CI
 
-This branch (`patterns-libvirt-tekton`) installs **OpenShift Pipelines (Tekton)** and the secrets stack on an **existing** HyperShift hosted cluster. It does **not** install Multicluster Engine, does **not** create another hosted cluster, and does **not** use AWS.
+This branch (`patterns-libvirt-tekton`) installs **OpenShift Pipelines (Tekton)** and the secrets stack on the **existing BM hub** (hosting / management cluster). That matches the upstream `patterns` branch: Tekton runs on the hub. It does **not** install Multicluster Engine, does **not** create another hosted cluster, and does **not** use AWS.
 
 Use it when:
 
 - A hub OpenShift cluster already runs MCE + HyperShift
-- A hosted cluster already exists (here: `hcptest-0` on libvirt VMs)
-- You want to install Tekton on that hosted cluster
+- A hosted cluster may already exist; this pattern will not create or reinstall it
+- You to install Tekton on the hub
 
 ## What `./patterns.sh make install` deploys
 
-On the hosted cluster (default kubeconfig):
+On the hub (default kubeconfig):
 
 | Component | Purpose |
 | --- | --- |
@@ -20,26 +20,24 @@ On the hosted cluster (default kubeconfig):
 | HashiCorp Vault | Secrets backend |
 | External Secrets Operator | Sync Vault → cluster secrets |
 | HTPasswd OAuth | Lab users from `users.htpasswd` |
-| Local storage | Static hostPath PVs (`lab-hostpath`) for Vault and pipeline workspaces |
 
-Explicitly **skipped**: MCE, HyperShift config, `hcp` CLI build, AWS credentials/IAM, S3 OIDC bucket, cluster-autoscaler, Let’s Encrypt (Route53), kubelet MachineConfig, ACM managed-cluster groups, AWS cluster-provisioning pipelines.
+Explicitly **skipped**: MCE, HyperShift config, `hcp` CLI build, AWS credentials/IAM, S3 OIDC bucket, cluster-autoscaler, Let’s Encrypt (Route53), kubelet MachineConfig, ACM managed-cluster groups, AWS cluster-provisioning pipelines (those would create hosted clusters).
+
+Storage uses the hub’s existing `hostpath-csi` default StorageClass.
 
 ## Prerequisites
 
-- Hub kubeconfig: `/home/kni/clusterconfigs/auth/kubeconfig`
-- Hosted cluster kubeconfig: `/home/kni/clusterconfigs/hcptest-0/auth/kubeconfig` (default target)
+- Hub kubeconfig (default target): `/home/kni/clusterconfigs/auth/kubeconfig`
 - HTPasswd file: `/home/kni/clusterconfigs/users.htpasswd`
 - Pull secret (optional, loaded into Vault): `/home/kni/clusterconfigs/pull-secret.json`
 - `podman` (used by `pattern.sh` / `patterns.sh`)
 - This git branch must be **pushed** to the origin Argo CD will clone (`TARGET_BRANCH` defaults to the current branch)
 
-Copy the secrets template (never commit the copy):
+Copy the secrets template if it is not already present (never commit the copy):
 
 ```sh
 cp values-secret.yaml.template $HOME/values-secret-hypershift.yaml
 ```
-
-Paths in the template already point at this lab’s clusterconfigs files.
 
 ## Install
 
@@ -52,22 +50,20 @@ git checkout patterns-libvirt-tekton
 ./patterns.sh make install
 ```
 
-`make install` always uses the hosted-cluster kubeconfig (`/home/kni/clusterconfigs/hcptest-0/auth/kubeconfig`), even if your shell exported the hub kubeconfig. To target the hub instead (not typical for this branch):
+`make install` always uses the hub kubeconfig (`/home/kni/clusterconfigs/auth/kubeconfig`). To point at the hosted cluster instead (not the default):
 
 ```sh
-INSTALL_KUBECONFIG=/home/kni/clusterconfigs/auth/kubeconfig ./patterns.sh make install
+INSTALL_KUBECONFIG=/home/kni/clusterconfigs/hcptest-0/auth/kubeconfig ./patterns.sh make install
 ```
 
-On platform `None` (hosted cluster), `values-None.yaml` enables local PVs on workers `hcptest-worker-0-0` and `hcptest-worker-0-1`. If node names differ, edit `values-None.yaml` and `overrides/values-None.yaml`.
-
-On platform `BareMetal` (the hub), local storage is disabled because `hostpath-csi` already exists.
+Guest OAuth CRs cannot be patched on a hosted cluster; `values-None.yaml` disables the oauth app in that case.
 
 ## After install
 
 - Console login: HTPasswd users `demouser1` … `demouser5` (see `users.spec` for passwords)
 - Group `ci-users` is bound to `openshift-pipelines-tekton-admin`
 - Create Pipeline / PipelineRun objects in `vp-qe-ci` or any namespace
-- Workspace PVCs should use StorageClass `lab-hostpath` (default on the hosted cluster)
+- Workspace PVCs use the hub default StorageClass (`hostpath-csi`)
 
 ## Optional: GitHub OAuth instead of HTPasswd
 
@@ -77,4 +73,4 @@ On platform `BareMetal` (the hub), local storage is disabled because `hostpath-c
 
 ## Original AWS HyperShift pattern
 
-The `patterns` branch still installs MCE, HyperShift, S3 OIDC, and AWS cluster-provisioning pipelines. This branch is a lab overlay of that work for an already-running libvirt/BM hosted cluster.
+The `patterns` branch still installs MCE, HyperShift, S3 OIDC, and AWS cluster-provisioning pipelines on a hub. This branch keeps that hub-side Tekton model but skips MCE/HyperShift/AWS because the lab hub and hosted cluster already exist.

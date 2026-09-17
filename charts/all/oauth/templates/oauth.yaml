@@ -1,3 +1,5 @@
+{{- /* Hosted clusters reject guest OAuth CR updates; IdPs belong on the HostedCluster. */}}
+{{- if ne (.Values.global.clusterPlatform | default "") "None" }}
 apiVersion: config.openshift.io/v1
 kind: OAuth
 metadata:
@@ -44,3 +46,4 @@ spec:
 {{- end }}
   tokenConfig:
     accessTokenMaxAgeSeconds: 62208000
+{{- end }}

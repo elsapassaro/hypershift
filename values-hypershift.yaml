@@ -1,5 +1,6 @@
 # Shared values for the libvirt/BM Tekton-only pattern.
-# MCE, hosted-cluster provisioning, S3 OIDC, and AWS autoscaling are intentionally omitted.
+# Installed on the existing BM hub. MCE, hosted-cluster provisioning, S3 OIDC,
+# and AWS autoscaling are intentionally omitted.
 
 global:
   # GitHub organization(s) — used only if oauth.type is GitHub and groupsync is enabled.
@@ -13,6 +14,7 @@ global:
 
   oauth:
     # HTPasswd uses the lab users in /home/kni/clusterconfigs/users.htpasswd (loaded via Vault).
+    # This applies on the hub (BareMetal). Guest OAuth CRs on hosted clusters are immutable.
     # Switch to GitHub by setting type: GitHub, secretName: ocp-github-oauth, and providing oauthCreds.
     type: HTPasswd
     secretName: htpasswd-secret
@@ -25,9 +27,9 @@ global:
       credentialsSecretName: github-group-sync
       url: https://api.github.com/
 
-# Local PVs for hosted clusters without CSI. Node list comes from values-None.yaml / overrides.
+# Local PVs only for platform None (hosted). Hub BareMetal uses hostpath-csi.
 localStorage:
-  enabled: true
+  enabled: false
   storageClassName: lab-hostpath
   setDefault: true
   pathPrefix: /var/lab-pvs
@@ -35,9 +37,9 @@ localStorage:
   volumesPerNode: 6
   nodes: []
 
-# KubeletConfig is disabled on this branch (no MCP on hosted clusters).
+# KubeletConfig is disabled on this branch. Compact 3-node hub has an empty worker MCP.
 kubelet:
-  targetPool: worker
+  targetPool: master
 
 # Set rbac.create to false if you want to skip creation of role/rolebinding.
 rbac:

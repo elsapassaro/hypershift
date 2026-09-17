@@ -6,3 +6,5 @@ clusterGroup:
   applications:
     local-storage:
       disabled: true
+    oauth:
+      disabled: false

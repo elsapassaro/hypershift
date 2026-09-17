@@ -1,5 +1,5 @@
 # Auto-loaded when the target cluster platform is BareMetal (libvirt-simulated BM hub).
-# Skip AWS-only components. Hub already has a default StorageClass (hostpath-csi).
+# Skip AWS-only components. Hub already has hostpath-csi. OAuth is allowed on the hub.
 
 letsencrypt:
   region: ""
@@ -14,6 +14,8 @@ clusterGroup:
       disabled: true
     local-storage:
       disabled: true
+    oauth:
+      disabled: false
 
 localStorage:
   enabled: false
