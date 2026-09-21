@@ -82,8 +82,26 @@ fi
 # $HOME is mounted as itself for any files that are referenced with absolute paths
 # $HOME is mounted to /root because the UID in the container is 0 and that's where SSH looks for credentials
 
-podman run -it --rm --pull=newer \
+# Prefer IPv4. Dual-stack OpenShift API DNS often includes an unreachable IPv6
+# ULA; kubernetes-python websocket-client (ansible k8s_exec / vault status)
+# does not fall back to IPv4 after EHOSTUNREACH, so load-secrets retries hang.
+# oc/urllib3 may still succeed because they try IPv4; ansible does not.
+GAI_CONF=$(mktemp /tmp/pattern-gai-ipv4.XXXXXX)
+cat > "${GAI_CONF}" <<'EOF'
+precedence ::ffff:0:0/96  100
+EOF
+# shellcheck disable=SC2064
+trap "rm -f '${GAI_CONF}'" EXIT
+
+# Do not allocate a TTY unless stdin is one (nohup/CI: "input device is not a TTY").
+PODMAN_TTY_ARGS="-i"
+if [ -t 0 ]; then
+    PODMAN_TTY_ARGS="-it"
+fi
+
+podman run ${PODMAN_TTY_ARGS} --rm --pull=newer \
     --security-opt label=disable \
+    -v "${GAI_CONF}":/etc/gai.conf:ro \
     -e ANSIBLE_STDOUT_CALLBACK \
     -e DISABLE_VALIDATE_ORIGIN \
     -e EXTRA_HELM_OPTS \
