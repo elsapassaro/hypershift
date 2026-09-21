@@ -148,6 +148,19 @@ clusterGroup:
       annotations:
         argocd.argoproj.io/sync-wave: "19"
 
+    # Pipelines operator creates the ConsolePlugin CR; this adds it to
+    # console.operator.openshift.io/cluster spec.plugins so the Pipelines nav appears.
+    ensure-openshift-console-plugins:
+      name: ensure-openshift-console-plugins
+      namespace: openshift-console
+      argoProject: hub
+      chart: ensure-openshift-console-plugins
+      chartVersion: 0.1.*
+      extraValueFiles:
+        - '$patternref/overrides/values-console-plugins.yaml'
+      annotations:
+        argocd.argoproj.io/sync-wave: "20"
+
     argocd-application-rbac:
       disabled: false
       name: argocd-application-rbac
